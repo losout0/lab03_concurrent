@@ -3,19 +3,23 @@ import java.util.*;
 
 public class FileSimilarity {
 
+    // Create a map to store the fingerprint for each file
+    static Map<String, List<Long>> fileFingerprints = new HashMap<>();
+
     public static void main(String[] args) throws Exception {
         if (args.length < 2) {
             System.err.println("Usage: java Sum filepath1 filepath2 filepathN");
             System.exit(1);
         }
 
-        // Create a map to store the fingerprint for each file
-        Map<String, List<Long>> fileFingerprints = new HashMap<>();
-
         // Calculate the fingerprint for each file
         for (String path : args) {
-            List<Long> fingerprint = fileSum(path);
-            fileFingerprints.put(path, fingerprint);
+            FileSum taskSum = new FileSum(path);
+            Thread threadSum = new Thread(taskSum, "myThreadSum");
+            threadSum.start();
+            //threadSum.join();
+            //List<Long> fingerprint = fileSum(path);
+            //fileFingerprints.put(path, fingerprint);
         }
 
         // Compare each pair of files
@@ -25,11 +29,9 @@ public class FileSimilarity {
                 String file2 = args[j];
                 List<Long> fingerprint1 = fileFingerprints.get(file1);
                 List<Long> fingerprint2 = fileFingerprints.get(file2);
-                Similarity task =  new Similarity(file1, file2, fingerprint1, fingerprint2);
-                Thread thread = new Thread(task, "myThread");
-                thread.start();
-                //float similarityScore = similarity(fingerprint1, fingerprint2);
-                //System.out.println("Similarity between " + file1 + " and " + file2 + ": " + (similarityScore * 100) + "%");
+                Similarity taskSim =  new Similarity(file1, file2, fingerprint1, fingerprint2);
+                Thread threadSim = new Thread(taskSim, "myThread");
+                threadSim.start();
             }
         }
     }
@@ -56,21 +58,33 @@ public class FileSimilarity {
         return sum;
     }
 
-    private static float similarity(List<Long> base, List<Long> target) {
-        int counter = 0;
-        List<Long> targetCopy = new ArrayList<>(target);
+    public static class FileSum implements Runnable{
+        private File file;
+        private List<Long> chunks;
+        private String filePath;
 
-        for (Long value : base) {
-            if (targetCopy.contains(value)) {
-                counter++;
-                targetCopy.remove(value);
-            }
+        public FileSum(String filePath){
+            this.filePath = filePath;
+            this.file = new File(filePath);
+            this.chunks = new ArrayList<>();
+
         }
-
-        return (float) counter / base.size();
+        
+        @Override
+        public void run() {
+            try (FileInputStream inputStream = new FileInputStream(file)) {
+                byte[] buffer = new byte[100];
+                int bytesRead;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    long sum = sum(buffer, bytesRead);
+                    chunks.add(sum);  // possível região crítica
+                }
+            }catch(Exception e){
+                System.err.println(e.getMessage());
+            }
+            fileFingerprints.put(filePath, chunks);
+        }
     }
-
-
 
     public static class Similarity implements Runnable{
 
