@@ -25,8 +25,11 @@ public class FileSimilarity {
                 String file2 = args[j];
                 List<Long> fingerprint1 = fileFingerprints.get(file1);
                 List<Long> fingerprint2 = fileFingerprints.get(file2);
-                float similarityScore = similarity(fingerprint1, fingerprint2);
-                System.out.println("Similarity between " + file1 + " and " + file2 + ": " + (similarityScore * 100) + "%");
+                Similarity task =  new Similarity(file1, file2, fingerprint1, fingerprint2);
+                Thread thread = new Thread(task, "myThread");
+                thread.start();
+                //float similarityScore = similarity(fingerprint1, fingerprint2);
+                //System.out.println("Similarity between " + file1 + " and " + file2 + ": " + (similarityScore * 100) + "%");
             }
         }
     }
@@ -39,7 +42,7 @@ public class FileSimilarity {
             int bytesRead;
             while ((bytesRead = inputStream.read(buffer)) != -1) {
                 long sum = sum(buffer, bytesRead);
-                chunks.add(sum);
+                chunks.add(sum);  // possível região crítica
             }
         }
         return chunks;
@@ -65,5 +68,39 @@ public class FileSimilarity {
         }
 
         return (float) counter / base.size();
+    }
+
+
+
+    public static class Similarity implements Runnable{
+
+        private List<Long> base;
+        private String file1;
+        private List<Long> target;
+        private String file2;
+
+        public Similarity(String file1, String file2, List<Long> base, List<Long> target){
+            this.file1 = file1;
+            this.file2 = file2;
+            this.base = base;
+            this.target = target;
+        }
+
+        @Override
+        public void run() {
+            int counter = 0;
+            List<Long> targetCopy = new ArrayList<>(target);
+    
+            for (Long value : base) {
+                if (targetCopy.contains(value)) {
+                    counter++;
+                    targetCopy.remove(value);
+                }
+            }
+            float similarityScore = (float) counter / base.size();
+            System.out.println("Similarity between " + this.file1 + " and " + this.file2 + ": " + (similarityScore * 100) + "%");
+        }
+    
+        
     }
 }
