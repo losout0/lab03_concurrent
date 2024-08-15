@@ -18,8 +18,6 @@ public class FileSimilarity {
             Thread threadSum = new Thread(taskSum, "myThreadSum");
             threadSum.start();
             //threadSum.join();
-            //List<Long> fingerprint = fileSum(path);
-            //fileFingerprints.put(path, fingerprint);
         }
 
         // Compare each pair of files
@@ -34,20 +32,6 @@ public class FileSimilarity {
                 threadSim.start();
             }
         }
-    }
-
-    private static List<Long> fileSum(String filePath) throws IOException {
-        File file = new File(filePath);
-        List<Long> chunks = new ArrayList<>();
-        try (FileInputStream inputStream = new FileInputStream(file)) {
-            byte[] buffer = new byte[100];
-            int bytesRead;
-            while ((bytesRead = inputStream.read(buffer)) != -1) {
-                long sum = sum(buffer, bytesRead);
-                chunks.add(sum);  // possível região crítica
-            }
-        }
-        return chunks;
     }
 
     private static long sum(byte[] buffer, int length) {
